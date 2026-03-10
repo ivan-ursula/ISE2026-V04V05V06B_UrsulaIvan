@@ -11,8 +11,8 @@
 #include <string.h>
 #include "cmsis_os2.h"                  // ::CMSIS:RTOS2
 #include "rl_net.h"                     // Keil.MDK-Pro::Network:CORE
-
 #include "Board_LED.h"                  // ::Board Support:LED
+#include "SPI.h"
 
 #if      defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)
 #pragma  clang diagnostic push
@@ -20,17 +20,24 @@
 #endif
 
 // http_server.c
-extern uint16_t AD_in (uint32_t ch);
-extern uint8_t  get_button (void);
+//extern uint16_t AD_in (uint32_t ch);
+//extern uint8_t  get_button (void);
 
-extern bool LEDrun;
-extern char lcd_text[2][20+1];
-extern osThreadId_t TID_Display;
+//extern bool LEDrun;
+//extern char lcd_text[2][20+1];
+//extern osThreadId_t TID_Display;
+extern osThreadId_t thLed;
+
+extern osMessageQueueId_t msglcd;
+extern osMessageQueueId_t msgadc;
+cola_LCD qLCD;
+
 
 // Local variables.
 static uint8_t P2;
 static uint8_t ip_addr[NET_ADDR_IP6_LEN];
 static char    ip_string[40];
+uint8_t flaglinea;
 
 // My structure of CGI status variable.
 typedef struct {
@@ -109,10 +116,11 @@ void netCGI_ProcessData (uint8_t code, const char *data, uint32_t len) {
   }
 
   P2 = 0;
-  LEDrun = true;
+ // osThreadFlagsSet(thLed, 0x0f);
+//  LEDrun = true;
   if (len == 0) {
-    // No data or all items (radio, checkbox) are off
-    LED_SetOut (P2);
+    // No data or all items (radio, checkbox) are of
+
     return;
   }
   passw[0] = 1;
@@ -123,30 +131,20 @@ void netCGI_ProcessData (uint8_t code, const char *data, uint32_t len) {
       // First character is non-null, string exists
       if (strcmp (var, "led0=on") == 0) {
         P2 |= 0x01;
+        osThreadFlagsSet(thLed, P2);
       }
       else if (strcmp (var, "led1=on") == 0) {
         P2 |= 0x02;
-      }
-      else if (strcmp (var, "led2=on") == 0) {
+				osThreadFlagsSet(thLed, P2);
+
+      }else if (strcmp (var, "led2=on") == 0) {
         P2 |= 0x04;
+				osThreadFlagsSet(thLed, P2);
+
       }
-      else if (strcmp (var, "led3=on") == 0) {
-        P2 |= 0x08;
-      }
-      else if (strcmp (var, "led4=on") == 0) {
-        P2 |= 0x10;
-      }
-      else if (strcmp (var, "led5=on") == 0) {
-        P2 |= 0x20;
-      }
-      else if (strcmp (var, "led6=on") == 0) {
-        P2 |= 0x40;
-      }
-      else if (strcmp (var, "led7=on") == 0) {
-        P2 |= 0x80;
-      }
+
       else if (strcmp (var, "ctrl=Browser") == 0) {
-        LEDrun = false;
+
       }
       else if ((strncmp (var, "pw0=", 4) == 0) ||
                (strncmp (var, "pw2=", 4) == 0)) {
@@ -162,18 +160,21 @@ void netCGI_ProcessData (uint8_t code, const char *data, uint32_t len) {
         }
       }
       else if (strncmp (var, "lcd1=", 5) == 0) {
-        // LCD Module line 1 text
-        strcpy (lcd_text[0], var+5);
-        osThreadFlagsSet (TID_Display, 0x01);
+				strcpy(qLCD.msg, var + 5);
+        qLCD.length=strlen(qLCD.msg);
+        qLCD.linea=1;
+        osMessageQueuePut(msglcd,&qLCD,0,0);
       }
       else if (strncmp (var, "lcd2=", 5) == 0) {
-        // LCD Module line 2 text
-        strcpy (lcd_text[1], var+5);
-        osThreadFlagsSet (TID_Display, 0x01);
+				strcpy(qLCD.msg, var + 5);
+        qLCD.length=strlen(qLCD.msg);
+        qLCD.linea=2;
+        osMessageQueuePut(msglcd,&qLCD,0,0);
+
       }
     }
   } while (data);
-  LED_SetOut (P2);
+
 }
 
 // Generate dynamic web data from a script line.
@@ -185,6 +186,8 @@ uint32_t netCGI_Script (const char *env, char *buf, uint32_t buflen, uint32_t *p
   uint32_t len = 0U;
   uint8_t id;
   static uint32_t adv;
+  static uint32_t value;
+  
   netIF_Option opt = netIF_OptionMAC_Address;
   int16_t      typ = 0;
 
@@ -246,8 +249,8 @@ uint32_t netCGI_Script (const char *env, char *buf, uint32_t buflen, uint32_t *p
       // LED control from 'led.cgi'
       if (env[2] == 'c') {
         // Select Control
-        len = (uint32_t)sprintf (buf, &env[4], LEDrun ?     ""     : "selected",
-                                               LEDrun ? "selected" :    ""     );
+//        len = (uint32_t)sprintf (buf, &env[4], LEDrun ?     ""     : "selected",
+//                                               LEDrun ? "selected" :    ""     );
         break;
       }
       // LED CheckBoxes
@@ -257,6 +260,9 @@ uint32_t netCGI_Script (const char *env, char *buf, uint32_t buflen, uint32_t *p
       }
       id = (uint8_t)(1U << id);
       len = (uint32_t)sprintf (buf, &env[4], (P2 & id) ? "checked" : "");
+      if(P2==0){
+       osThreadFlagsSet(thLed, 0x08);
+      }
       break;
 
     case 'c':
@@ -337,10 +343,12 @@ uint32_t netCGI_Script (const char *env, char *buf, uint32_t buflen, uint32_t *p
       // LCD Module control from 'lcd.cgi'
       switch (env[2]) {
         case '1':
-          len = (uint32_t)sprintf (buf, &env[4], lcd_text[0]);
+          len = (uint32_t)sprintf (buf, &env[4], 1);
+          flaglinea=1;
           break;
         case '2':
-          len = (uint32_t)sprintf (buf, &env[4], lcd_text[1]);
+       len = (uint32_t)sprintf (buf, &env[4], 2);
+        flaglinea=2;
           break;
       }
       break;
@@ -349,29 +357,40 @@ uint32_t netCGI_Script (const char *env, char *buf, uint32_t buflen, uint32_t *p
       // AD Input from 'ad.cgi'
       switch (env[2]) {
         case '1':
-          adv = AD_in (0);
-          len = (uint32_t)sprintf (buf, &env[4], adv);
+//          adv = AD_in (0);
+          osMessageQueueGet(msgadc,&value,0,0);
+      //  value=1.2;
+         adv=20;
+//          value=2.2;
+          len = (uint32_t)sprintf (buf, &env[4], value);
+         // len = (uint32_t)sprintf (buf, "%f", value);
           break;
         case '2':
-          len = (uint32_t)sprintf (buf, &env[4], (double)((float)adv*3.3f)/4096);
+         len = (uint32_t)sprintf (buf, &env[4], (double)((float)value*3.3f)/4096);  //(double)((float)adv*3.3f)/4096);
+         // len = (uint32_t)sprintf (buf, "%d", adv);
+        //  printf("%s",env);
           break;
         case '3':
-          adv = (adv * 100) / 4096;
-          len = (uint32_t)sprintf (buf, &env[4], adv);
+
+        //adv = (adv * 100) / 4096;
+         value=(value*100)/4096;
+          //en = (uint32_t)sprintf (buf, "%f", value);
+         len = (uint32_t)sprintf (buf, &env[4], value);
           break;
       }
       break;
 
     case 'x':
       // AD Input from 'ad.cgx'
-      adv = AD_in (0);
-      len = (uint32_t)sprintf (buf, &env[1], adv);
+//      adv = AD_in (0);
+     osMessageQueueGet(msgadc,&value,0,0);
+    len = (uint32_t)sprintf (buf, &env[1], value);
       break;
 
     case 'y':
       // Button state from 'button.cgx'
-      len = (uint32_t)sprintf (buf, "<checkbox><id>button%c</id><on>%s</on></checkbox>",
-                               env[1], (get_button () & (1 << (env[1]-'0'))) ? "true" : "false");
+//    len = (uint32_t)sprintf (buf, "<checkbox><id>button%c</id><on>%s</on></checkbox>",
+//                              env[1], (get_button () & (1 << (env[1]-'0'))) ? "true" : "false");
       break;
   }
   return (len);
