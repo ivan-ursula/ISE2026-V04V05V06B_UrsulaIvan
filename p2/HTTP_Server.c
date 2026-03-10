@@ -12,6 +12,7 @@
 #include "stm32f4xx_hal.h"              // Keil::Device:STM32Cube HAL:Common
 #include "SPI.h"
 #include "rtc.h"
+#include <time.h>
 //#include "Board_LED.h"                  // ::Board Support:LED
 //#include "Board_Buttons.h"              // ::Board Support:Buttons
 //#include "Board_ADC.h"                  // ::Board Support:A/D Converter
@@ -96,8 +97,11 @@ void netDHCP_Notify (uint32_t if_num, uint8_t option, const uint8_t *val, uint32
   Inicializar LED
  *---------------------------------------------------------------------------*/
 static void initi_gpio_Led(void){
+  GPIO_InitTypeDef GPIO_InitStruct;
+  
   GPIO_InitTypeDef timgpio;
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   
   timgpio.Pin = GPIO_PIN_0 | GPIO_PIN_7 | GPIO_PIN_14;
   timgpio.Mode = GPIO_MODE_OUTPUT_PP;
@@ -105,6 +109,13 @@ static void initi_gpio_Led(void){
   timgpio.Speed = GPIO_SPEED_FREQ_LOW;
 	
   HAL_GPIO_Init(GPIOB, &timgpio);
+  
+  
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 /*----------------------------------------------------------------------------
 *      Callback alarma
@@ -124,6 +135,23 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc){
     counter = 1;
     osTimerStop(tim_id1);
   }
+}
+ /*----------------------------------------------------------------------------
+*      Interrupcion boton azul
+ *---------------------------------------------------------------------------*/
+void EXTI15_10_IRQHandler(void){
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+  struct tm ts;
+  ts.tm_year=2000-100-8;
+  ts.tm_mday=1;
+  ts.tm_mon=1-1;
+  ts.tm_hour=0;
+  ts.tm_min=0;
+  ts.tm_sec=0;
+  RTC_CalendarConfig(ts);
 }
 
 //Create and Start timers

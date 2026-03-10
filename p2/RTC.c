@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+
 RTC_HandleTypeDef RtcHandle;
 extern osThreadId_t thLed;
 
@@ -15,19 +16,19 @@ void Error_Handler(void)
   }
 }
 
-void RTC_CalendarConfig(void)
+void RTC_CalendarConfig(struct tm ts)
 {
   RTC_DateTypeDef sdatestructure;
   RTC_TimeTypeDef stimestructure;
 
   /*##-1- Configure the Date #################################################*/
   /* Set Date: Lunes 2 de Marzo de 2026 */
-  sdatestructure.Year = 0x26;
-  sdatestructure.Month = RTC_MONTH_MARCH;
-  sdatestructure.Date = 0x02;
+  sdatestructure.Year = ts.tm_year-100;
+  sdatestructure.Month = ts.tm_mon+1;
+  sdatestructure.Date = ts.tm_mday;
   sdatestructure.WeekDay = RTC_WEEKDAY_MONDAY;
   
-  if(HAL_RTC_SetDate(&RtcHandle,&sdatestructure,RTC_FORMAT_BCD) != HAL_OK)
+  if(HAL_RTC_SetDate(&RtcHandle,&sdatestructure,RTC_FORMAT_BIN) != HAL_OK)
   {
     /* Initialization Error */
     Error_Handler();
@@ -35,14 +36,14 @@ void RTC_CalendarConfig(void)
 
   /*##-2- Configure the Time #################################################*/
   /* Set Time: 14:00:00 */
-  stimestructure.Hours = 0x14;
-  stimestructure.Minutes = 0x00;
-  stimestructure.Seconds = 0x00;
+  stimestructure.Hours = ts.tm_hour;
+  stimestructure.Minutes = ts.tm_min;
+  stimestructure.Seconds = ts.tm_sec;
   stimestructure.TimeFormat = RTC_HOURFORMAT_24;
   stimestructure.DayLightSaving = RTC_DAYLIGHTSAVING_NONE ;
   stimestructure.StoreOperation = RTC_STOREOPERATION_RESET;
 
-  if (HAL_RTC_SetTime(&RtcHandle, &stimestructure, RTC_FORMAT_BCD) != HAL_OK)
+  if (HAL_RTC_SetTime(&RtcHandle, &stimestructure, RTC_FORMAT_BIN) != HAL_OK)
   {
     /* Initialization Error */
     Error_Handler();
@@ -118,7 +119,7 @@ void Init_RTC(void)
   HAL_RTC_SetAlarm_IT(&RtcHandle,&alarma,RTC_FORMAT_BCD);
   HAL_NVIC_EnableIRQ(RTC_Alarm_IRQn);
   
-  RTC_CalendarConfig();
+  //RTC_CalendarConfig();
   
   
 }
@@ -133,8 +134,8 @@ void RTC_CalendarShow(uint8_t *showtime, uint8_t *showdate)
   HAL_RTC_GetDate(&RtcHandle, &sdatestructureget, RTC_FORMAT_BIN);
   /* Display time Format : hh:mm:ss */
   sprintf((char *)showtime, "%2d:%2d:%2d", stimestructureget.Hours, stimestructureget.Minutes, stimestructureget.Seconds);
-  /* Display date Format : mm-dd-yy */
-  sprintf((char *)showdate, "%2d-%2d-%2d", sdatestructureget.Month, sdatestructureget.Date, 2000 + sdatestructureget.Year);
+  /* Display date Format : dd-mm-yy */
+  sprintf((char *)showdate, "%2d-%2d-%2d", sdatestructureget.Date, sdatestructureget.Month, 2000 + sdatestructureget.Year);
 }
 void RTC_Alarm_IRQHandler(void){
   HAL_RTC_AlarmIRQHandler(&RtcHandle);

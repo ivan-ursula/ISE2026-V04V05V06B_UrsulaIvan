@@ -3,12 +3,13 @@
 
 #include "cmsis_os2.h"
 #include "stm32f4xx_hal.h"
+#include <time.h>
 //mirar esto con el profesor
 #define RTC_ASYNCH_PREDIV  0x7F   /* LSE as RTC clock */
 #define RTC_SYNCH_PREDIV   0x00FF /* LSE as RTC clock */
 
 void Init_RTC(void);
-void RTC_CalendarConfig(void);
+void RTC_CalendarConfig(struct tm ts);
 void RTC_CalendarShow(uint8_t *showtime, uint8_t *showdate);
 typedef struct{
   uint8_t hora[50];
