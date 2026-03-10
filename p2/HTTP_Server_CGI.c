@@ -174,11 +174,7 @@ void netCGI_ProcessData (uint8_t code, const char *data, uint32_t len) {
         qLCD.linea=2;
         osMessageQueuePut(msglcd,&qLCD,0,0);
 
-      }else if (strncmp (var, "hora=on", 5)==0){
-        
-        
-        
-        
+      }else if (strncmp (var, "hora=on", 5)==0){      
         
         osThreadFlagsSet(thLed,0X07);
        
@@ -405,6 +401,16 @@ uint32_t netCGI_Script (const char *env, char *buf, uint32_t buflen, uint32_t *p
       break;
     case 'h':
       osMessageQueueGet(msgrtc,&horario,0,0);
+    
+      qLCD.linea=0;
+      qLCD.length=sprintf(qLCD.msg,"%s",horario.fecha);
+      osMessageQueuePut(msglcd,&qLCD,0,0);
+    
+      qLCD.linea=1;
+      qLCD.length=sprintf(qLCD.msg,"%s",horario.hora);
+      osMessageQueuePut(msglcd,&qLCD,0,0);
+    
+      
         switch(env[2]){
          case '1':
              

@@ -61,25 +61,6 @@ void th_rtc (void *argument) {
   while (1) {
    RTC_CalendarShow(fechas.hora, fechas.fecha) ;
     osMessageQueuePut(msgrtc,&fechas,NULL,osWaitForever);
-  // netSNTPc_GetTimeX ("time1.google.com", &f, NULL);
-//  if(  netSNTPc_GetTime ((NET_ADDR *)&ntp_server, time_callback)==netOK){
-//    printf ("SNTP request sent.\n");
-//  }
-    
-//   lcd.length=strlen((char*)fechas.hora);      
-//   for(int i=0; i<lcd.length;i++){
-//    lcd.msg[i]=fechas.hora[i];
-//   }
-//   lcd.linea=1;
-//   osMessageQueuePut(msglcd,&lcd,NULL,0);
-
-//   lcd.length=strlen((char*)fechas.fecha); 
-//   for(int i=0; i<lcd.length;i++){
-//    lcd.msg[i]=fechas.fecha[i];
-//   }
-//   lcd.linea=0;
-//   osMessageQueuePut(msglcd,&lcd,NULL,0);   
-   
    osDelay(1000);                           // suspend thread
   }
 }
