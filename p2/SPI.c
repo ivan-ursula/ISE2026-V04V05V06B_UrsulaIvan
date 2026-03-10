@@ -247,5 +247,3 @@ void LCD_clear_L2(void){
   }
   
 }
-	
-

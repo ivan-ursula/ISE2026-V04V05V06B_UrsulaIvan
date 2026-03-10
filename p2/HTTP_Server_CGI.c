@@ -13,6 +13,7 @@
 #include "rl_net.h"                     // Keil.MDK-Pro::Network:CORE
 #include "Board_LED.h"                  // ::Board Support:LED
 #include "SPI.h"
+#include "RTC.h"
 
 #if      defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)
 #pragma  clang diagnostic push
@@ -22,7 +23,7 @@
 // http_server.c
 //extern uint16_t AD_in (uint32_t ch);
 //extern uint8_t  get_button (void);
-
+uint32_t raw= 20;
 //extern bool LEDrun;
 //extern char lcd_text[2][20+1];
 //extern osThreadId_t TID_Display;
@@ -30,9 +31,11 @@ extern osThreadId_t thLed;
 
 extern osMessageQueueId_t msglcd;
 extern osMessageQueueId_t msgadc;
+extern osMessageQueueId_t msgrtc;
+
 cola_LCD qLCD;
 
-
+rtc_t horario;
 // Local variables.
 static uint8_t P2;
 static uint8_t ip_addr[NET_ADDR_IP6_LEN];
@@ -171,6 +174,14 @@ void netCGI_ProcessData (uint8_t code, const char *data, uint32_t len) {
         qLCD.linea=2;
         osMessageQueuePut(msglcd,&qLCD,0,0);
 
+      }else if (strncmp (var, "hora=on", 5)==0){
+        
+        
+        
+        
+        
+        osThreadFlagsSet(thLed,0X07);
+       
       }
     }
   } while (data);
@@ -391,6 +402,21 @@ uint32_t netCGI_Script (const char *env, char *buf, uint32_t buflen, uint32_t *p
       // Button state from 'button.cgx'
 //    len = (uint32_t)sprintf (buf, "<checkbox><id>button%c</id><on>%s</on></checkbox>",
 //                              env[1], (get_button () & (1 << (env[1]-'0'))) ? "true" : "false");
+      break;
+    case 'h':
+      osMessageQueueGet(msgrtc,&horario,0,0);
+        switch(env[2]){
+         case '1':
+             
+             len = (uint32_t)sprintf (buf, &env[4], horario.fecha);
+          break;
+          case '2':
+             
+             len = (uint32_t)sprintf (buf, &env[4], horario.hora);
+          break;
+          
+        }
+    
       break;
   }
   return (len);

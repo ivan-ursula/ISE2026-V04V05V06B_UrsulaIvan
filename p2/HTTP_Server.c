@@ -11,6 +11,7 @@
 #include "rl_net.h"                     // Keil.MDK-Pro::Network:CORE
 #include "stm32f4xx_hal.h"              // Keil::Device:STM32Cube HAL:Common
 #include "SPI.h"
+#include "rtc.h"
 //#include "Board_LED.h"                  // ::Board Support:LED
 //#include "Board_Buttons.h"              // ::Board Support:Buttons
 //#include "Board_ADC.h"                  // ::Board Support:A/D Converter
@@ -47,7 +48,13 @@ extern void     netDHCP_Notify (uint32_t if_num, uint8_t option, const uint8_t *
 
 osThreadId_t thLed;
 static uint8_t flag;
-
+extern osMessageQueueId_t msgrtc;
+extern osMessageQueueId_t msglcd;
+rtc_t tiempos;
+/* Timer IDs */
+osTimerId_t tim_id1;
+uint32_t exec1;
+int Init_Timer (void);
 /* Thread declarations */
 //static void BlinkLed (void *arg);
 //static void Display  (void *arg);
@@ -99,6 +106,35 @@ static void initi_gpio_Led(void){
 	
   HAL_GPIO_Init(GPIOB, &timgpio);
 }
+/*----------------------------------------------------------------------------
+*      Callback alarma
+ *---------------------------------------------------------------------------*/
+ uint8_t counter = 1;
+
+void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc){
+  osThreadFlagsSet(thLed, 0x10);
+}
+
+ void Timer1_Callback (void const *arg) {
+  if(counter < 25){
+    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    counter++;
+  }else{
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+    counter = 1;
+    osTimerStop(tim_id1);
+  }
+}
+
+//Create and Start timers
+int Init_Timer (void) {
+  exec1 = 1U;
+ tim_id1= osTimerNew((osTimerFunc_t)&Timer1_Callback, osTimerPeriodic, &exec1, NULL);
+
+  return NULL;
+}
+
+
 
 /*----------------------------------------------------------------------------
   Thread LED INIT
@@ -114,7 +150,7 @@ int init_thLed (void){
 static void blink (void *arg){
   initi_gpio_Led();
   while(1){
-    flag = osThreadFlagsWait(0x0f, osFlagsWaitAny, osWaitForever);
+    flag = osThreadFlagsWait(0xff, osFlagsWaitAny, osWaitForever);
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,flag&0x01);
     
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,flag&0x02);
@@ -123,6 +159,9 @@ static void blink (void *arg){
    if(flag==0x08){
           HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0 | GPIO_PIN_7 | GPIO_PIN_14,0);
     }
+   if(flag==0x10){
+     osTimerStart(tim_id1, 200U); 
+   }
     
     osThreadYield();
   }
@@ -136,16 +175,12 @@ __NO_RETURN void app_main (void *arg) {
   init_thLCD();
   init_thLed();
   init_thadc();
-//	Init_Thread_LCD();
-//  LED_Initialize();
-//  Buttons_Initialize();
-//  ADC_Initialize();
+  init_thRTC();
+  Init_Timer();
 
   netInitialize ();
 
-//  TID_Led  = osThreadNew (BlinkLed, NULL, NULL);
-//  TID_Display = osThreadNew (Display,  NULL, NULL);
-
   osThreadExit();
 }
+
 
