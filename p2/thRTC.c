@@ -42,7 +42,7 @@ int init_thRTC (void) {
   tim_idRTC = osTimerNew((osTimerFunc_t)&TimerRTC_Callback, osTimerPeriodic, &exec2, NULL);
   
   tim_BLINK=osTimerNew((osTimerFunc_t)&TimerBLINK_Callback, osTimerPeriodic, &exec2, NULL);
-  osTimerStart(tim_idRTC, 30000U); 
+  osTimerStart(tim_idRTC, 180000U); 
   
   Init_RTC();
   //RTC_CalendarConfig();
