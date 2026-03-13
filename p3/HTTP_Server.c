@@ -13,11 +13,7 @@
 #include "SPI.h"
 #include "rtc.h"
 #include <time.h>
-//#include "Board_LED.h"                  // ::Board Support:LED
-//#include "Board_Buttons.h"              // ::Board Support:Buttons
-//#include "Board_ADC.h"                  // ::Board Support:A/D Converter
-//#include "Board_GLCD.h"                 // ::Board Support:Graphic LCD
-//#include "GLCD_Config.h"                // Keil.MCBSTM32F400::Board Support:Graphic LCD
+#include "stopMode.h"
 
 // Main stack size must be multiple of 8 Bytes
 #define APP_MAIN_STK_SZ (1024U)
@@ -27,58 +23,33 @@ const osThreadAttr_t app_main_attr = {
   .stack_size = sizeof(app_main_stk)
 };
 
-//extern GLCD_FONT GLCD_Font_6x8;
-//extern GLCD_FONT GLCD_Font_16x24;
 
-//extern uint16_t AD_in          (uint32_t ch);
-//extern uint8_t  get_button     (void);
 extern void     netDHCP_Notify (uint32_t if_num, uint8_t option, const uint8_t *val, uint32_t len);
 
-//extern bool LEDrun;
-//extern char lcd_text[2][20+1];
 
-//extern osThreadId_t TID_Display;
-//extern osThreadId_t TID_Led;
-
-//bool LEDrun;
-//char lcd_text[2][20+1] = { "LCD line 1",
-//                           "LCD line 2" };
-
-/* Thread IDs */
-//osThreadId_t TID_Display;
 
 osThreadId_t thLed;
 static uint8_t flag;
 extern osMessageQueueId_t msgrtc;
 extern osMessageQueueId_t msglcd;
 rtc_t tiempos;
+
 /* Timer IDs */
-osTimerId_t tim_id1;
+osTimerId_t tim_id1,tim_sleepMode;
 uint32_t exec1;
+uint32_t exec3 ;
+ 
 int Init_Timer (void);
+ void Timer1_Callback (void const *arg);
+ 
+ void Timer_StopMode(void const *arg);
 /* Thread declarations */
-//static void BlinkLed (void *arg);
-//static void Display  (void *arg);
+
 static void blink (void *arg);
 
 __NO_RETURN void app_main (void *arg);
 
-/* Read analog inputs */
-//uint16_t AD_in (uint32_t ch) {
-//  int32_t val = 0;
 
-//  if (ch == 0) {
-//    ADC_StartConversion();
-//    while (ADC_ConversionDone () < 0);
-//    val = ADC_GetValue();
-//  }
-//  return ((uint16_t)val);
-//}
-
-/* Read digital inputs */
-//uint8_t get_button (void) {
-//  return ((uint8_t)Buttons_GetState ());
-//}
 
 /* IP address change notification */
 void netDHCP_Notify (uint32_t if_num, uint8_t option, const uint8_t *val, uint32_t len) {
@@ -136,6 +107,11 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc){
     osTimerStop(tim_id1);
   }
 }
+ 
+ void Timer_StopMode(void const *arg){
+   SleepMode_Measure();
+   
+ }
  /*----------------------------------------------------------------------------
 *      Interrupcion boton azul
  *---------------------------------------------------------------------------*/
@@ -152,12 +128,18 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   ts.tm_min=0;
   ts.tm_sec=0;
   RTC_CalendarConfig(ts);
+  osThreadFlagsSet(thLed,0x20);
 }
 
-//Create and Start timers
+ /*----------------------------------------------------------------------------
+*      TIMERS
+ *---------------------------------------------------------------------------*/
 int Init_Timer (void) {
   exec1 = 1U;
  tim_id1= osTimerNew((osTimerFunc_t)&Timer1_Callback, osTimerPeriodic, &exec1, NULL);
+  
+  exec3 = 1U;
+ tim_sleepMode= osTimerNew((osTimerFunc_t)&Timer_StopMode, osTimerOnce, &exec3, NULL);
 
   return NULL;
 }
@@ -190,6 +172,9 @@ static void blink (void *arg){
    if(flag==0x10){
      osTimerStart(tim_id1, 200U); 
    }
+   if(flag==0x20){
+     osTimerStart(tim_sleepMode,15000);
+   }
     
     osThreadYield();
   }
@@ -209,7 +194,7 @@ __NO_RETURN void app_main (void *arg) {
   netInitialize ();
   osDelay(5000);
   init_thRTC();
-
+  osTimerStart(tim_sleepMode,15000);
   osThreadExit();
 }
 
