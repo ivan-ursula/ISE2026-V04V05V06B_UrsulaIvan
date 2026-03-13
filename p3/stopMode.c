@@ -1,5 +1,6 @@
 #include "stopMode.h"
 
+
 void SleepMode_Measure(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct;
@@ -51,11 +52,12 @@ void SleepMode_Measure(void)
   __HAL_RCC_GPIOH_CLK_DISABLE();
   __HAL_RCC_GPIOI_CLK_DISABLE();
   __HAL_RCC_GPIOJ_CLK_DISABLE();
-  __HAL_RCC_GPIOK_CLK_DISABLE();
+    __HAL_RCC_GPIOK_CLK_DISABLE();
 
   /* Configure user Button */
   //BSP_PB_Init(BUTTON_KEY, BUTTON_MODE_EXTI);
   initi_gpio_Led();
+
 
   /* Suspend Tick increment to prevent wakeup by Systick interrupt. 
      Otherwise the Systick interrupt will wake up the device within 1ms (HAL time base) */
@@ -65,10 +67,10 @@ void SleepMode_Measure(void)
   HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
   /* Resume Tick interrupt if disabled prior to sleep mode entry */
-  HAL_ResumeTick();
+  //HAL_ResumeTick();
   
   /* Exit Ethernet Phy from LowPower mode */
-  ETH_PhyExitFromPowerDownMode();
+  //ETH_PhyExitFromPowerDownMode();
 }
 void ETH_PhyExitFromPowerDownMode(void)
 {

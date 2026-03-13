@@ -94,22 +94,22 @@ static void initi_gpio_Led(void){
  uint8_t counter = 1;
 
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc){
-  osThreadFlagsSet(thLed, 0x10);
+  //osThreadFlagsSet(thLed, 0x10);
 }
 
  void Timer1_Callback (void const *arg) {
-  if(counter < 25){
     HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-    counter++;
-  }else{
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-    counter = 1;
-    osTimerStop(tim_id1);
-  }
+
 }
  
  void Timer_StopMode(void const *arg){
-   SleepMode_Measure();
+   
+    
+    osTimerStop(tim_id1);
+
+   HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,0);
+   HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,1);
+      SleepMode_Measure();
    
  }
  /*----------------------------------------------------------------------------
@@ -120,6 +120,7 @@ void EXTI15_10_IRQHandler(void){
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+  HAL_ResumeTick();
   struct tm ts;
   ts.tm_year=2000-100-8;
   ts.tm_mday=1;
@@ -128,6 +129,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   ts.tm_min=0;
   ts.tm_sec=0;
   RTC_CalendarConfig(ts);
+  //osThreadFlagsSet(thLed,0x08);
   osThreadFlagsSet(thLed,0x20);
 }
 
@@ -166,13 +168,30 @@ static void blink (void *arg){
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,flag&0x02);
     
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,flag&0x04);
+    if(flag==0x04){
+//      osTimerStop(tim_id1);
+//      SleepMode_Measure();
+    }
    if(flag==0x08){
           HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0 | GPIO_PIN_7 | GPIO_PIN_14,0);
     }
-   if(flag==0x10){
-     osTimerStart(tim_id1, 200U); 
-   }
+
    if(flag==0x20){
+    // netInitialize();
+     
+     //ETH_PhyExitFromPowerDownMode();
+     
+     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,0);
+     
+     init_spi();
+     init_timer();
+     delay(1000);
+     LCD_init();
+     delay(1000);
+     
+     netUninitialize();
+     netInitialize();
+     osTimerStart(tim_id1,100);
      osTimerStart(tim_sleepMode,15000);
    }
     
@@ -191,7 +210,8 @@ __NO_RETURN void app_main (void *arg) {
   
   Init_Timer();
 
-  netInitialize ();
+  netInitialize();
+  osTimerStart(tim_id1,100);
   osDelay(5000);
   init_thRTC();
   osTimerStart(tim_sleepMode,15000);

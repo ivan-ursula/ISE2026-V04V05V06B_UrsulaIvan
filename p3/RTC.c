@@ -97,27 +97,27 @@ void Init_RTC(void)
   }
   /* Inicializar la alarma*/
   
-  RTC_AlarmTypeDef alarma;
-  alarma.AlarmTime.Hours=0;
-  alarma.AlarmTime.Minutes=0;
-  alarma.AlarmTime.Seconds=5;
-  alarma.AlarmTime.SubSeconds=0;
-  alarma.AlarmTime.TimeFormat=RTC_HOURFORMAT_24;
-  
-  alarma.AlarmTime.DayLightSaving=RTC_DAYLIGHTSAVING_NONE;
-  alarma.AlarmTime.StoreOperation=RTC_STOREOPERATION_RESET;
-  
-  alarma.AlarmMask=RTC_ALARMMASK_DATEWEEKDAY|RTC_ALARMMASK_HOURS|RTC_ALARMMASK_MINUTES;
-  
-  alarma.AlarmSubSecondMask=RTC_ALARMSUBSECONDMASK_ALL;
-  alarma.AlarmDateWeekDaySel=RTC_ALARMDATEWEEKDAYSEL_DATE;
-  
-  alarma.AlarmDateWeekDay=0x01;
-  alarma.Alarm=RTC_ALARM_A;
-  
-  
-  HAL_RTC_SetAlarm_IT(&RtcHandle,&alarma,RTC_FORMAT_BCD);
-  HAL_NVIC_EnableIRQ(RTC_Alarm_IRQn);
+//  RTC_AlarmTypeDef alarma;
+//  alarma.AlarmTime.Hours=0;
+//  alarma.AlarmTime.Minutes=0;
+//  alarma.AlarmTime.Seconds=5;
+//  alarma.AlarmTime.SubSeconds=0;
+//  alarma.AlarmTime.TimeFormat=RTC_HOURFORMAT_24;
+//  
+//  alarma.AlarmTime.DayLightSaving=RTC_DAYLIGHTSAVING_NONE;
+//  alarma.AlarmTime.StoreOperation=RTC_STOREOPERATION_RESET;
+//  
+//  alarma.AlarmMask=RTC_ALARMMASK_DATEWEEKDAY|RTC_ALARMMASK_HOURS|RTC_ALARMMASK_MINUTES;
+//  
+//  alarma.AlarmSubSecondMask=RTC_ALARMSUBSECONDMASK_ALL;
+//  alarma.AlarmDateWeekDaySel=RTC_ALARMDATEWEEKDAYSEL_DATE;
+//  
+//  alarma.AlarmDateWeekDay=0x01;
+//  alarma.Alarm=RTC_ALARM_A;
+//  
+//  
+//  HAL_RTC_SetAlarm_IT(&RtcHandle,&alarma,RTC_FORMAT_BCD);
+//  HAL_NVIC_EnableIRQ(RTC_Alarm_IRQn);
   
   //RTC_CalendarConfig();
   

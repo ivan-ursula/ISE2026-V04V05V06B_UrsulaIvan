@@ -21,6 +21,7 @@ void init_spi(void){
   HAL_GPIO_WritePin(GPIOB,RESET_spi,SET);// reset a nivel alto aun por decidir
   HAL_GPIO_WritePin(GPIOB,A0|CS,RESET); // cs y A0 aun por decidir temporal
   
+  SPIsrv->Uninitialize();
   SPIsrv->Initialize(spi_callback);
   SPIsrv->PowerControl(ARM_POWER_FULL);
   SPIsrv->Control(ARM_SPI_MODE_MASTER| ARM_SPI_CPOL1_CPHA1 | ARM_SPI_MSB_LSB | ARM_SPI_DATA_BITS(8),SPIfclk);
