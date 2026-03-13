@@ -203,10 +203,12 @@ __NO_RETURN void app_main (void *arg) {
   init_thLCD();
   init_thLed();
   init_thadc();
-  init_thRTC();
+  
   Init_Timer();
 
   netInitialize ();
+  osDelay(5000);
+  init_thRTC();
 
   osThreadExit();
 }

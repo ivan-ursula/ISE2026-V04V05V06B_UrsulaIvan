@@ -57,7 +57,7 @@ int init_thRTC (void) {
 
  
 void th_rtc (void *argument) {
- 
+  netSNTPc_GetTime ((NET_ADDR *)&ntp_server, time_callback);
   while (1) {
    RTC_CalendarShow(fechas.hora, fechas.fecha) ;
     osMessageQueuePut(msgrtc,&fechas,NULL,osWaitForever);
